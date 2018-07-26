@@ -231,4 +231,5 @@ defmodule Absinthe.PhoenixTest do
 
     assert_reply(ref, :ok, %{subscriptionId: _subscription_ref})
   end
+  end
 end

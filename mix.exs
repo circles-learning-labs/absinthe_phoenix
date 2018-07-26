@@ -58,6 +58,7 @@ defmodule Absinthe.Phoenix.Mixfile do
       {:phoenix_pubsub, "~> 2.0"},
       {:phoenix_html, "~> 2.13 or ~> 3.0", optional: true},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
+      {:absinthe, github: "hippware/absinthe", branch: "subscription_catchup", override: true},
       {:jason, "~> 1.0", only: [:dev, :test]}
     ]
   end
