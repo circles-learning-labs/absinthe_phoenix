@@ -97,5 +97,13 @@ defmodule Schema do
         {:error, "unauthorized"}
       end
     end
+
+    field :catchup, :string do
+      config fn _, %{context: %{pubsub: pubsub}} ->
+        {:ok, topic: "catchup_topic", catchup: fn ->
+          {:ok, ["catchup1", "catchup2"]}
+        end}
+      end
+    end
   end
 end
