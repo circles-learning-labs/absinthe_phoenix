@@ -12,16 +12,16 @@ defmodule Absinthe.AsyncTest do
 
   test "defer sync" do
     socket = get_socket(0)
-    query = %{"query" => "query { slow_field (delay: 400) { value @defer } }"}
+    query = %{"query" => "query { slow_fields (delays: [400]) { value @defer } }"}
     ref = push(socket, "doc", query)
     refute_reply(ref, _, _, 200)
 
-    query = %{"query" => "query { slow_field (delay: 100) { value @defer } }"}
+    query = %{"query" => "query { slow_fields (delays: [100]) { value @defer } }"}
     ref2 = push(socket, "doc", query)
 
     # This second query will be blocked by the first because there are no async
     # threads left to handle it
-    assert_reply(ref, :ok, %{queryId: id1}, 500)
+    assert_reply(ref, :ok, %{queryId: id1}, 300)
     assert_push("doc", reply)
     assert reply.queryId == id1
     assert reply.data == 400
@@ -39,11 +39,11 @@ defmodule Absinthe.AsyncTest do
     # cleaned up and don't prevent subsequent queries being handled
     # asynchronously
     Enum.each(1..3, fn _ ->
-      query = %{"query" => "query { slow_field (delay: 400) { value @defer } }"}
+      query = %{"query" => "query { slow_fields (delays: [400]) { value @defer } }"}
       ref = push(socket, "doc", query)
       assert_reply(ref, :ok, %{queryId: id1})
 
-      query = %{"query" => "query { slow_field (delay: 100) { value @defer } }"}
+      query = %{"query" => "query { slow_fields (delays: [100]) { value @defer } }"}
       ref = push(socket, "doc", query)
       assert_reply(ref, :ok, %{queryId: id2})
 

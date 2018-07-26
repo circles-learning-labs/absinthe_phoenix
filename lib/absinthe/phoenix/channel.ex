@@ -107,6 +107,19 @@ defmodule Absinthe.Phoenix.Channel do
         socket = Absinthe.Phoenix.Socket.put_options(socket, context: context)
         {{:ok, %{subscriptionId: topic}}, socket}
 
+      {:more, %{"subscribed" => topic}, continuation, context} ->
+        socket = Absinthe.Phoenix.Socket.put_options(socket, context: context)
+        reply(socket_ref(socket), {:ok, %{subscriptionId: topic}})
+
+        :ok = Phoenix.PubSub.subscribe(socket.pubsub_server, topic, [
+          fastlane: {socket.transport_pid, socket.serializer, []},
+          link: true,
+        ])
+
+        handle_subscription_continuation(continuation, topic, socket)
+
+        {:noreply, socket}
+
       {:ok, %{data: _} = reply, context} ->
         socket = Absinthe.Phoenix.Socket.put_options(socket, context: context)
         {{:ok, reply}, socket}
@@ -201,4 +214,25 @@ defmodule Absinthe.Phoenix.Channel do
     do: "absinthe_query:" <> to_string(:erlang.unique_integer([:positive]))
 
   defp add_query_id(result, id), do: Map.put(result, :queryId, id)
+
+  defp handle_subscription_continuation(continuation, topic, socket) do
+    {:ok, %{result: result}, _phases} = Absinthe.Pipeline.continue(continuation)
+    push_subscription_item(result.data, topic, socket)
+
+    case result[:continuation] do
+      nil -> :ok
+      c -> handle_subscription_continuation(c, topic, socket)
+    end
+  end
+
+  defp push_subscription_item(data, topic, socket) do
+    msg = %Phoenix.Socket.Broadcast{
+      topic: topic,
+      event: "subscription:data",
+      payload: %{result: %{data: data}, subscriptionId: topic}
+    }
+    |> socket.serializer.fastlane!()
+
+    send(socket.transport_pid, msg)
+  end
 end
